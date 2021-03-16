@@ -1,19 +1,36 @@
 class CustomElement {
 
     public style : string 
-    parent : Renderer
+
+    children : Array<CustomElement> = []
+
+    parent : Renderer | CustomElement
+
+    mounted : boolean = false 
+
     initStyle() {
         return {
 
         }
     }
 
-    setParent(parent : Renderer) {
+    add(child : CustomElement) {
+        this.children.push(child)
+        child.setParent(this)
+        if (this.parent) {
+            this.renderParent()
+        }
+        this.render()
+    }
+
+    setParent(parent : Renderer | CustomElement) {
         this.parent = parent
     }
 
     renderScript() {
-
+        this.children.forEach((child) => {
+            child.renderScript()
+        })
     }
 
     parseStyle() {
@@ -26,6 +43,30 @@ class CustomElement {
         this.style = styleStr
     }
 
+    mountElement() {
+        this.children.forEach((child) => {
+            if (child.children.length > 0 || child.shouldMount()) {
+                child.mountElement()
+            }
+        })
+        this.mounted = true;
+        
+    }
+
+    shouldMount() : boolean {
+        return !this.mounted
+    }
+
+    renderParent() {
+        if (this.parent) {
+            this.parent.renderParent()
+        }
+    }
+    
+    changeState() {
+        //this.render()
+        this.renderParent()
+    }
 
     render() : string {
         this.parseStyle()
@@ -34,14 +75,27 @@ class CustomElement {
 }
 
 class TodoItem extends CustomElement {
-
+    scale : number = 0
     constructor(private text : string) {
         super()
     }   
+
+    mountElement() {
+        super.mountElement()
+        const interval = setInterval(() => {
+            this.scale += 0.02
+            if (this.scale >= 1) {
+                this.scale = 1 
+                clearInterval(interval)
+            }
+            this.changeState()
+            //console.log("SCALE", this.scale)
+        }, 10)
+    }
     
     initStyle() {
        return {
-           "width": "100%",
+           "width": `${100 * this.scale}%`,
            "height": "40px",
            "margin-top": "1%",
            "color": "white",
@@ -73,8 +127,7 @@ class TodoItemContainer extends CustomElement {
     add(element : CustomElement) {
         this.children = [element, ...this.children]
         element.setParent(this.parent)
-        this.render()
-        this.parent.render()
+        this.renderParent()
     }
 
     renderChildren() : string {
@@ -95,22 +148,29 @@ const todoItemContainer : TodoItemContainer = new TodoItemContainer()
 class Renderer {
 
     elements : Array<CustomElement> = []
-
+    mounted : boolean = false
     add(element : CustomElement) {
         this.elements.push(element)
         element.setParent(this)
         this.render()
     }
 
+    renderParent() {
+        this.render()
+    }
+
     render() {
         const htmlParts = this.elements.map((element : CustomElement) => element.render())
-        console.log("HTML_PARTS", htmlParts)
+        //console.log("HTML_PARTS", htmlParts)
         const htmlString = htmlParts.join("\n")
         document.body.innerHTML = htmlString
         this.elements.forEach((element) => {
-            element.renderScript()
+            if (element.children.length > 0 || element.shouldMount()) {
+                element.renderScript()
+                element.mountElement()
+            }
         })
-        console.log("HTML_STRING", htmlString) 
+        //console.log("HTML_STRING", htmlString) 
     }
 }
 
@@ -152,14 +212,12 @@ class ButtonElement extends CustomElement {
 
     render() : string {
         super.render()
-        console.log("BTN_sTYLE", this.style)
+        //console.log("BTN_sTYLE", this.style)
         return `<button id = "btn1" style = "${this.style}">Add Todo</button>`
     }
 }
 
 class InputContainer extends CustomElement {
-
-    children : Array<CustomElement> = []
 
     initStyle() {
         return {
@@ -167,15 +225,6 @@ class InputContainer extends CustomElement {
             display: "flex",
             "justify-content": "space-between"
         }
-    }
-    add(element : CustomElement) {
-        this.children.push(element)
-    }
-
-    renderScript() {
-        this.children.forEach((child) => {
-            child.renderScript()
-        })
     }
 
     render() : string {
