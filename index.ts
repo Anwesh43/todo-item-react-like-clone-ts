@@ -1,10 +1,15 @@
 class CustomElement {
 
     public style : string 
+    parent : Renderer
     initStyle() {
         return {
 
         }
+    }
+
+    setParent(parent : Renderer) {
+        this.parent = parent
     }
 
     renderScript() {
@@ -28,12 +33,72 @@ class CustomElement {
     }
 }
 
+class TodoItem extends CustomElement {
+
+    constructor(private text : string) {
+        super()
+    }   
+    
+    initStyle() {
+       return {
+           "width": "100%",
+           "height": "40px",
+           "margin-top": "1%",
+           "color": "white",
+           "display": "flex",
+           "justify-content": "center",
+           "align-items": "center",
+           "font-size": "15px",
+           "background": "indigo"
+       }
+    }
+
+    render() : string {
+        super.render()
+        return `<div style = "${this.style}">${this.text}</div>`
+    }
+}
+
+class TodoItemContainer extends CustomElement {
+
+    children : Array<CustomElement> = []
+
+    initStyle() {
+        return {
+            "float": "top",
+            "width": "100%",
+        }
+    }
+
+    add(element : CustomElement) {
+        this.children = [element, ...this.children]
+        element.setParent(this.parent)
+        this.render()
+        this.parent.render()
+    }
+
+    renderChildren() : string {
+        return this.children.map((child) => child.render()).join("\n")
+    }
+
+    render() : string {
+        super.render()
+        return `<div style = "${this.style}">
+            ${this.renderChildren()}
+        </div>`
+    }
+}
+
+const todoItemContainer : TodoItemContainer = new TodoItemContainer()
+
+
 class Renderer {
 
     elements : Array<CustomElement> = []
 
     add(element : CustomElement) {
         this.elements.push(element)
+        element.setParent(this)
         this.render()
     }
 
@@ -50,6 +115,7 @@ class Renderer {
 }
 
 const renderer : Renderer = new Renderer()
+
 
 
 class InputBox extends CustomElement {
@@ -78,7 +144,9 @@ class ButtonElement extends CustomElement {
     renderScript() {
         document.getElementById('btn1').onclick = () => {
             const todoInput : HTMLInputElement =  document.getElementById('todoInput') as HTMLInputElement
-            alert(todoInput.value);
+            const todoItem : TodoItem = new TodoItem(todoInput.value);
+            todoItemContainer.add(todoItem);
+            todoInput.value = ""
         }   
     }
 
@@ -122,3 +190,4 @@ const inputBox : InputBox = new InputBox()
 inputContainer.add(inputBox)
 inputContainer.add(buttonElement)
 renderer.add(inputContainer)
+renderer.add(todoItemContainer)
