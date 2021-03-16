@@ -7,6 +7,10 @@ class CustomElement {
         }
     }
 
+    renderScript() {
+
+    }
+
     parseStyle() {
         const styleObj = this.initStyle()
         let styleStr : string = ``
@@ -38,6 +42,9 @@ class Renderer {
         console.log("HTML_PARTS", htmlParts)
         const htmlString = htmlParts.join("\n")
         document.body.innerHTML = htmlString
+        this.elements.forEach((element) => {
+            element.renderScript()
+        })
         console.log("HTML_STRING", htmlString) 
     }
 }
@@ -68,6 +75,13 @@ class ButtonElement extends CustomElement {
         }  
     }
 
+    renderScript() {
+        document.getElementById('btn1').onclick = () => {
+            const todoInput : HTMLInputElement =  document.getElementById('todoInput') as HTMLInputElement
+            alert(todoInput.value);
+        }   
+    }
+
     render() : string {
         super.render()
         console.log("BTN_sTYLE", this.style)
@@ -88,6 +102,12 @@ class InputContainer extends CustomElement {
     }
     add(element : CustomElement) {
         this.children.push(element)
+    }
+
+    renderScript() {
+        this.children.forEach((child) => {
+            child.renderScript()
+        })
     }
 
     render() : string {
